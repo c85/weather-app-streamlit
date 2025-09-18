@@ -197,8 +197,8 @@ def main():
     }
 
     # page setup - these components are being called from streamlit, theyre native
-    st.set_page_config(page_title="The Weather App", page_icon="SWA", layout="wide")
-    st.title("The Weather App")
+    st.set_page_config(page_title="🌤️ The Weather App by The PFG", page_icon="SWA", layout="wide")
+    st.title("🌤️ The Weather App by The PFG")
 
     # Sidebar for view selection
     with st.sidebar:
