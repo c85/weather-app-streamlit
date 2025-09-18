@@ -149,7 +149,7 @@ def get_ai_events(weather_data, event_data):
 
     # Create a chat completion
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
@@ -192,7 +192,7 @@ def main():
     }
 
     # page setup - these components are being called from streamlit, theyre native
-    st.set_page_config(page_title="🌤️ The Weather App by The PFG", page_icon="SWA", layout="wide")
+    st.set_page_config(page_title="The Weather App by The PFG", page_icon="🌤️", layout="wide")
     st.title("🌤️ The Weather App by The PFG")
 
     # Sidebar for view selection
