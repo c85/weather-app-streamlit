@@ -1,19 +1,25 @@
 import streamlit as st
 import requests
 from datetime import datetime
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 @st.cache_data(ttl=600)
-def geocode_city(name: str): # passing name as city query - we need this first to then call current weather with this informtion as key
+def geocode_city(name: str):
     """Return (lat, lon, resolved_name, country) using Open-Meteo geocoding."""
     url = "https://geocoding-api.open-meteo.com/v1/search"
     params = {"name": name, "count": 1, "language": "en", "format": "json"}
-    r = requests.get(url, params=params, timeout=10) # send request
-    r.raise_for_status() # raise exceptio for error
+    r = requests.get(url, params=params, timeout=10)
+    r.raise_for_status()
     data = r.json()
     if not data.get("results"):
         return None
     top = data["results"][0]
-    return ( # tuple that streamlit stores in cache
+    return (
         top["latitude"],
         top["longitude"],
         top.get("name", name),
@@ -76,6 +82,87 @@ def get_current_weather(lat: float, lon: float, temp_unit: str, wind_unit: str):
     r.raise_for_status() # raise exceptio for error
     return r.json().get("current_weather")
 
+@st.cache_data(ttl=300)
+def get_local_events(city_name):
+    api_key = os.getenv("SERPAPI_API_KEY")
+    if not api_key:
+        st.error("SERPAPI_API_KEY not found in environment variables")
+        return None
+    
+    params = {
+        "api_key": api_key,
+        "engine": "google_events",
+        "q": f"Events in {city_name}",
+        "hl": "en",
+        "gl": "us",
+        "htichips": "date:today"
+    }
+
+    try:
+        response = requests.get("https://serpapi.com/search", params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Error fetching events: {e}")
+        return None
+
+@st.cache_data(ttl=300)
+def get_ai_events(weather_data, event_data):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    # System prompt for weather-appropriate event recommendations
+    system_prompt = """You are a helpful weather assistant that analyzes local events and current weather conditions to provide personalized recommendations.
+
+    Your task is to:
+    1. Review the available local events
+    2. Consider the current weather conditions
+    3. Recommend which events are most suitable for today's weather
+    4. Provide specific clothing recommendations for each recommended event
+
+    For clothing recommendations, consider:
+    - If it's raining: suggest umbrellas, waterproof jackets, rain boots
+    - If it's sunny and warm: suggest light clothing, sun hats, sunscreen
+    - If it's cold: suggest warm jackets, layers, gloves, hats
+    - If it's windy: suggest wind-resistant clothing, secure accessories
+    - If it's snowing: suggest winter gear, boots, warm layers
+
+    Provide 3-5 specific event recommendations with weather-appropriate clothing suggestions for each."""
+
+    # Format event data for the AI
+    events_text = "No events available"
+    if event_data and 'events_results' in event_data:
+        events_list = event_data['events_results'][:10]  # Limit to first 10 events
+        events_text = "\n".join([
+            f"- {event.get('title', 'Unknown Event')} at {event.get('address', 'Unknown Location')} on {event.get('date', 'Unknown Date')}"
+            for event in events_list
+        ])
+
+    # Create user message with weather and event data
+    user_message = f"""Based on the current weather and available local events, please provide recommendations on which events to attend and what to wear.
+
+    Current Weather:
+    - Temperature: {weather_data.get('temperature', 'N/A')}°F
+    - Wind Speed: {weather_data.get('windspeed', 'N/A')} mph
+    - Wind Direction: {weather_data.get('winddirection', 'N/A')}°
+    - Weather Code: {weather_data.get('weathercode', 'N/A')}
+    - Time: {weather_data.get('time', 'N/A')}
+
+    Available Local Events:
+    {events_text}
+
+    Please recommend which events are best suited for today's weather and provide specific clothing recommendations for each recommended event."""
+
+    # Create a chat completion
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+    )
+
+    return response.choices[0].message.content
+
 def main():
     # dictionary that provides hard coded weather codes - can be used to modiify verbage
     WMO_CODES = {
@@ -113,6 +200,17 @@ def main():
     st.set_page_config(page_title="The Weather App", page_icon="SWA", layout="wide")
     st.title("The Weather App")
 
+    # Sidebar for view selection
+    with st.sidebar:
+        st.header("View Options")
+        view_mode = st.radio(
+            "Choose what to display:",
+            ["Weather Info", "Local Events"],
+            index=0,
+            help="Toggle between weather information and AI-powered recommendations"
+        )
+        st.divider()
+
     # Initialize session state for location data
     if 'location_data' not in st.session_state:
         st.session_state.location_data = None
@@ -121,7 +219,7 @@ def main():
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        get_weather_btn = st.button("🌐 Get My Weather", help="Detect your location and get current weather", type="primary")
+        get_weather_btn = st.button("🌐 Use My Location", help="Detect your location and get current weather", type="primary")
 
     with col2:
         # Always show clear button
@@ -141,6 +239,9 @@ def main():
 
     # Get weather when button is clicked
     if get_weather_btn:
+        # Clear cache to ensure fresh API calls
+        get_local_events.clear()
+        
         # Get IP-based location
         ip_location = get_ip_location()
         if ip_location:
@@ -181,24 +282,49 @@ def main():
             if not weather:
                 st.error("Could not fetch current weather. Please try again.")
             else: # display returned data from api using string interpolation
-                st.subheader(f"Current Weather — {resolved}{', ' + country if country else ''}")
-                cols = st.columns(3)
-                cols[0].metric("Temperature", f"{weather['temperature']} {unit}")
-                cols[1].metric("Wind Speed", f"{weather['windspeed']} {('km/h' if unit=='°C' else 'mph')}")
-                cols[2].metric("Direction", f"{weather['winddirection']}°")
+                if view_mode == "Weather Info":
+                    st.subheader(f"Current Weather — {resolved}{', ' + country if country else ''}")
+                    
+                    # Create two columns: map on left, weather info on right
+                    map_col, weather_col = st.columns([1, 1])
+                    
+                    with map_col:
+                        st.write("**Location Map**")
+                        st.map(data=[{"lat": lat, "lon": lon}], zoom=8)
+                    
+                    with weather_col:
+                        # weather api call - define variables first
+                        code = int(weather.get("weathercode", -1))
+                        desc = WMO_CODES.get(code, f"Code {code}")
+                        ts = weather.get("time")
+                        when = (
+                            datetime.fromisoformat(ts).strftime("%b %d, %Y %I:%M %p")
+                            if ts else "—"
+                        )
+                        st.write("**Weather Details**")
+                        st.caption(f"{when} (local time)")
+                        cols = st.columns(3)
+                        cols[0].metric("Temperature", f"{weather['temperature']} {unit}")
+                        cols[1].metric("Wind Speed", f"{weather['windspeed']} {('km/h' if unit=='°C' else 'mph')}")
+                        cols[2].metric("Direction", f"{weather['winddirection']}°")
 
-                # weather api call
-                code = int(weather.get("weathercode", -1))
-                desc = WMO_CODES.get(code, f"Code {code}")
-                ts = weather.get("time")
-                when = (
-                    datetime.fromisoformat(ts).strftime("%b %d, %Y %I:%M %p")
-                    if ts else "—"
-                )
-
-                st.write(f"**Condition:** {desc}")
-                st.caption(f"Observed: {when} (local time)")
-                st.map(data=[{"lat": lat, "lon": lon}], zoom=8)
+                        st.write(f"**Condition:** {desc}")
+                
+                elif view_mode == "Local Events":
+                    st.subheader("Local Events (Powered by ChatGPT)")
+                    
+                    # Get local events for the current city
+                    events = get_local_events(resolved)
+                    if events and 'events_results' in events:
+                        # Get AI recommendations based on weather and events
+                        try:
+                            ai_recommendations = get_ai_events(weather, events)
+                            if ai_recommendations:
+                                st.write(ai_recommendations)
+                        except Exception as e:
+                            st.error(f"Could not generate AI recommendations: {e}")
+                    else:
+                        st.write("No local events found for this location.")
 
         # handle http responses
         except requests.HTTPError as e:
