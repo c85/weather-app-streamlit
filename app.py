@@ -79,7 +79,7 @@ def get_current_weather(lat: float, lon: float, temp_unit: str, wind_unit: str):
         "timezone": "auto",
     }
     r = requests.get(url, params=params, timeout=10) # send request
-    r.raise_for_status() # raise exceptio for error
+    r.raise_for_status()
     return r.json().get("current_weather")
 
 @st.cache_data(ttl=300)
