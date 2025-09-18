@@ -47,11 +47,15 @@ A modern, interactive weather application built with Streamlit that provides rea
    pip install -r requirements.txt
    ```
 
-3. **Set up environment variables**
-   Create a `.env` file in the project root:
-   ```env
-   OPENAI_API_KEY=your_openai_api_key_here
-   SERPAPI_API_KEY=your_serpapi_key_here
+3. **Set up secrets for local development**
+   Copy the example secrets file and add your API keys:
+   ```bash
+   cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+   ```
+   Then edit `.streamlit/secrets.toml` with your actual API keys:
+   ```toml
+   SERPAPI_API_KEY = "your_serpapi_key_here"
+   OPENAI_API_KEY = "your_openai_key_here"
    ```
 
 4. **Run the application**
@@ -73,14 +77,48 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 2. **Run the container**
    ```bash
-   docker run -p 8501:8501 \
-     -e OPENAI_API_KEY=your_openai_api_key \
-     -e SERPAPI_API_KEY=your_serpapi_key \
-     weather-app
+   docker run -p 8501:8501 weather-app
    ```
+   Note: For Docker deployment, you'll need to set up secrets through your deployment platform.
 
 3. **Access the app**
    Open `http://localhost:8501` in your browser
+
+## ☁️ Streamlit Community Cloud Deployment
+
+### Deploy to Streamlit Community Cloud
+
+1. **Push your code to GitHub**
+   ```bash
+   git add .
+   git commit -m "Update for Streamlit Community Cloud deployment"
+   git push origin main
+   ```
+
+2. **Deploy on Streamlit Community Cloud**
+   - Go to [share.streamlit.io](https://share.streamlit.io)
+   - Sign in with your GitHub account
+   - Click "New app" and select your repository
+   - Choose the main branch and `app.py` as the main file
+
+3. **Configure secrets in Streamlit Community Cloud**
+   - In your app's settings, go to "Secrets"
+   - Add the following secrets:
+     ```toml
+     SERPAPI_API_KEY = "your_serpapi_key_here"
+     OPENAI_API_KEY = "your_openai_key_here"
+     ```
+   - Save the secrets
+
+4. **Deploy and enjoy!**
+   - Your app will be available at `https://your-app-name.streamlit.app`
+   - Secrets are automatically loaded from the Streamlit secrets management system
+
+### Important Notes for Streamlit Community Cloud
+- ✅ **No `.env` file needed** - use Streamlit's built-in secrets management
+- ✅ **Secrets are encrypted** and stored securely by Streamlit
+- ✅ **Easy to update** secrets through the web interface
+- ✅ **No environment variables** required in your code
 
 ## 📋 API Requirements
 
@@ -136,11 +174,17 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 ## 🔧 Configuration
 
-### Environment Variables
-```env
-OPENAI_API_KEY=your_openai_api_key
-SERPAPI_API_KEY=your_serpapi_key
+### Secrets Configuration
+
+#### For Local Development
+Create `.streamlit/secrets.toml`:
+```toml
+SERPAPI_API_KEY = "your_serpapi_key_here"
+OPENAI_API_KEY = "your_openai_key_here"
 ```
+
+#### For Streamlit Community Cloud
+Add secrets through the web interface in your app settings.
 
 ### Customization Options
 - Temperature units (Celsius/Fahrenheit)

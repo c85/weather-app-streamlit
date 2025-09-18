@@ -2,11 +2,6 @@ import streamlit as st
 import requests
 from datetime import datetime
 from openai import OpenAI
-import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 @st.cache_data(ttl=600)
 def geocode_city(name: str):
@@ -84,9 +79,9 @@ def get_current_weather(lat: float, lon: float, temp_unit: str, wind_unit: str):
 
 @st.cache_data(ttl=300)
 def get_local_events(city_name):
-    api_key = os.getenv("SERPAPI_API_KEY")
+    api_key = st.secrets.get("SERPAPI_API_KEY")
     if not api_key:
-        st.error("SERPAPI_API_KEY not found in environment variables")
+        st.error("SERPAPI_API_KEY not found in Streamlit secrets")
         return None
     
     params = {
@@ -108,7 +103,7 @@ def get_local_events(city_name):
 
 @st.cache_data(ttl=300)
 def get_ai_events(weather_data, event_data):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY"))
 
     # System prompt for weather-appropriate event recommendations
     system_prompt = """You are a helpful weather assistant that analyzes local events and current weather conditions to provide personalized recommendations.
@@ -150,7 +145,7 @@ def get_ai_events(weather_data, event_data):
     Available Local Events:
     {events_text}
 
-    Please recommend which events are best suited for today's weather and provide specific clothing recommendations for each recommended event."""
+    Please recommend which events are best suited for today's weather and provide specific clothing recommendations for each recommended event. Include the location address for these events."""
 
     # Create a chat completion
     response = client.chat.completions.create(
