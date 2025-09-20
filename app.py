@@ -163,6 +163,7 @@ def main():
     # page setup - these components are being called from streamlit, theyre native
     st.set_page_config(page_title="The Weather App by The PFG", page_icon="🌤️", layout="wide")
     st.title("🌤️ The Weather App by The PFG")
+    location_search_text = st.text_input("Location Search")
 
     # Sidebar for view selection
     with st.sidebar:
@@ -180,12 +181,15 @@ def main():
         st.session_state.location_data = None
 
     # Location detection section
-    col1, col2 = st.columns([1, 1])
-
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
     with col1:
-        get_weather_btn = st.button("🌐 Use My Location", help="Detect your location and get current weather", type="primary")
+        location_search_button = st.button("🔍️ Search", help="Type the city of interest and get current weather", type="primary")
 
     with col2:
+        get_weather_btn = st.button("🌐 Use My Location", help="Detect your location and get current weather", type="primary")
+
+    with col3:
         # Always show clear button
         if st.button("🗑️ Clear Location", help="Clear detected location"):
             st.session_state.location_data = None
