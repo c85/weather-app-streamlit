@@ -2,64 +2,33 @@ import streamlit as st
 import requests
 from datetime import datetime
 from openai import OpenAI
-
-@st.cache_data(ttl=600)
-def geocode_city(name: str):
-    """Return (lat, lon, resolved_name, country) using Open-Meteo geocoding."""
-    url = "https://geocoding-api.open-meteo.com/v1/search"
-    params = {"name": name, "count": 1, "language": "en", "format": "json"}
-    r = requests.get(url, params=params, timeout=10)
-    r.raise_for_status()
-    data = r.json()
-    if not data.get("results"):
-        return None
-    top = data["results"][0]
-    return (
-        top["latitude"],
-        top["longitude"],
-        top.get("name", name),
-        top.get("country", ""),
-    )
+from streamlit_geolocation import streamlit_geolocation
 
 @st.cache_data(ttl=600)
 def reverse_geocode(lat: float, lon: float):
-    """Return (resolved_name, country) using Open-Meteo reverse geocoding."""
-    url = "https://geocoding-api.open-meteo.com/v1/reverse"
-    params = {"latitude": lat, "longitude": lon, "count": 1, "language": "en", "format": "json"}
-    r = requests.get(url, params=params, timeout=10)
-    r.raise_for_status()
-    data = r.json()
-    if not data.get("results"):
-        return None
-    top = data["results"][0]
-    return (
-        top.get("name", "Unknown Location"),
-        top.get("country", ""),
-    )
-
-@st.cache_data(ttl=600)
-def get_ip_location():
-    """Return (lat, lon, city, country) using IP-based geolocation as fallback."""
+    """Return (resolved_name, country) using Nominatim reverse geocoding."""
     try:
-        # Get IP address
-        ip_response = requests.get('https://api64.ipify.org?format=json', timeout=5)
-        ip_data = ip_response.json()
-        ip_address = ip_data['ip']
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "format": "json",
+            "addressdetails": 1
+        }
+        headers = {
+            "User-Agent": "WeatherApp/1.0"
+        }
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        r.raise_for_status()
+        data = r.json()
         
-        # Get location from IP
-        geo_response = requests.get(f'https://ipapi.co/{ip_address}/json/', timeout=5)
-        geo_data = geo_response.json()
-        
-        if 'latitude' in geo_data and 'longitude' in geo_data:
-            return (
-                geo_data['latitude'],
-                geo_data['longitude'],
-                geo_data.get('city', 'Unknown'),
-                geo_data.get('country_name', ''),
-            )
-    except Exception as e:
-        st.write(f"IP geolocation failed: {e}")
-    return None
+        if data.get("address"):
+            city = data["address"].get("city") or data["address"].get("town") or data["address"].get("village") or "Unknown Location"
+            country = data["address"].get("country", "")
+            return city, country
+        return "Unknown Location", ""
+    except Exception:
+        return "Unknown Location", ""
 
 @st.cache_data(ttl=300)
 def get_current_weather(lat: float, lon: float, temp_unit: str, wind_unit: str): # passing geocode_city returned values as keys
@@ -232,24 +201,49 @@ def main():
     if st.session_state.location_data and st.session_state.location_data.get('latitude') and st.session_state.location_data.get('latitude') is not None:
         st.success("✅ Location detected!")
 
+    # Call streamlit_geolocation once
+    location = streamlit_geolocation()
+    
+    # Show instructions if location is not available
+    if not location or (location.get('latitude') is None and location.get('longitude') is None):
+        st.info("🌍 **Location Access Required**")
+        st.write("To use your current location:")
+        st.write("1. Click 'Allow' when your browser asks for location permission")
+        st.write("2. Make sure you're using HTTPS (not HTTP)")
+        st.write("3. Try refreshing the page if permission was denied")
+        st.write("4. Check your browser's location settings")
+    
     # Get weather when button is clicked
     if get_weather_btn:
         # Clear cache to ensure fresh API calls
         get_local_events.clear()
         
-        # Get IP-based location
-        ip_location = get_ip_location()
-        if ip_location:
-            lat, lon, city_name, country = ip_location
-            st.session_state.location_data = {
-                'latitude': lat,
-                'longitude': lon,
-                'city': city_name,
-                'country': country
-            }
-            st.success(f"✅ Location detected: {city_name}, {country}")
+        # Use the same simple check as your working example
+        if location:            
+            if location['latitude'] and location['longitude']:
+                lat = location['latitude']
+                lon = location['longitude']
+                
+                # Use reverse geocoding to get city and country
+                reverse_geocoded = reverse_geocode(lat, lon)
+                if reverse_geocoded:
+                    city_name, country = reverse_geocoded
+                else:
+                    city_name = "Current Location"
+                    country = ""
+                
+                # Store location data with city name
+                st.session_state.location_data = {
+                    'latitude': lat,
+                    'longitude': lon,
+                    'city': city_name,
+                    'country': country
+                }
+                st.success(f"✅ Location detected: {city_name}{', ' + country if country else ''}")
+            else:
+                st.error("❌ Location coordinates are null. Please try again.")
         else:
-            st.error("❌ Could not determine location from IP address")
+            st.error("❌ Could not access your location. Please ensure location permissions are enabled.")
 
     # Display weather data if location exists (even when temperature unit changes)
     if st.session_state.location_data and st.session_state.location_data.get('latitude') and st.session_state.location_data.get('latitude') is not None:
@@ -258,18 +252,9 @@ def main():
             lat = st.session_state.location_data['latitude']
             lon = st.session_state.location_data['longitude']
             
-            # Check if we have city/country from IP location
-            if 'city' in st.session_state.location_data and 'country' in st.session_state.location_data:
-                resolved = st.session_state.location_data['city']
-                country = st.session_state.location_data['country']
-            else:
-                # Use reverse geocoding for GPS location
-                reverse_geocoded = reverse_geocode(lat, lon)
-                if reverse_geocoded:
-                    resolved, country = reverse_geocoded
-                else:
-                    resolved = "Current Location"
-                    country = ""
+            # Use location data directly
+            resolved = st.session_state.location_data.get('city', 'Current Location')
+            country = st.session_state.location_data.get('country', '')
             
             # Get weather data
             weather = get_current_weather(lat, lon, temp_unit, wind_unit)
