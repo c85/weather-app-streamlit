@@ -30,6 +30,39 @@ def reverse_geocode(lat: float, lon: float):
     except Exception:
         return "Unknown Location", ""
 
+@st.cache_data(ttl=600)
+def geocode_location(location_text: str):
+    """Convert location text to (lat, lon, city, country) using Nominatim geocoding."""
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": location_text,
+            "format": "json",
+            "addressdetails": 1,
+            "limit": 1
+        }
+        headers = {
+            "User-Agent": "WeatherApp/1.0"
+        }
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        
+        if data and len(data) > 0:
+            result = data[0]
+            lat = float(result.get("lat", 0))
+            lon = float(result.get("lon", 0))
+            
+            # Extract city and country from address details
+            address = result.get("address", {})
+            city = address.get("city") or address.get("town") or address.get("village") or location_text
+            country = address.get("country", "")
+            
+            return lat, lon, city, country
+        return None, None, "Unknown Location", ""
+    except Exception:
+        return None, None, "Unknown Location", ""
+
 @st.cache_data(ttl=300)
 def get_current_weather(lat: float, lon: float, temp_unit: str, wind_unit: str): # passing geocode_city returned values as keys
     """Return current weather dict from Open-Meteo."""
@@ -163,7 +196,15 @@ def main():
     # page setup - these components are being called from streamlit, theyre native
     st.set_page_config(page_title="The Weather App by The PFG", page_icon="🌤️", layout="wide")
     st.title("🌤️ The Weather App by The PFG")
-    location_search_text = st.text_input("Location Search")
+
+    col1,col2 = st.columns([.05,1])
+    with col1:
+        # Call streamlit_geolocation once
+        location = streamlit_geolocation()
+    with col2:
+        st.html("<b><i>**Click the icon to the left and allow location permissions**</b></i>")
+
+    location_search_txt = st.text_input("Location Search", key="city_text_search")
 
     # Sidebar for view selection
     with st.sidebar:
@@ -181,15 +222,11 @@ def main():
         st.session_state.location_data = None
 
     # Location detection section
-    col1, col2, col3 = st.columns([1, 1, 1])
-    
+    col1, col2 = st.columns([1, 1])
     with col1:
-        location_search_button = st.button("🔍️ Search", help="Type the city of interest and get current weather", type="primary")
+        get_weather_btn = st.button("🌐 Get Weather", help="Detect your location and get current weather", type="primary")
 
     with col2:
-        get_weather_btn = st.button("🌐 Use My Location", help="Detect your location and get current weather", type="primary")
-
-    with col3:
         # Always show clear button
         if st.button("🗑️ Clear Location", help="Clear detected location"):
             st.session_state.location_data = None
@@ -204,38 +241,18 @@ def main():
     # Show location status
     if st.session_state.location_data and st.session_state.location_data.get('latitude') and st.session_state.location_data.get('latitude') is not None:
         st.success("✅ Location detected!")
-
-    # Call streamlit_geolocation once
-    location = streamlit_geolocation()
-    
-    # Show instructions if location is not available
-    if not location or (location.get('latitude') is None and location.get('longitude') is None):
-        st.info("🌍 **Location Access Required**")
-        st.write("To use your current location:")
-        st.write("1. Click 'Allow' when your browser asks for location permission")
-        st.write("2. Make sure you're using HTTPS (not HTTP)")
-        st.write("3. Try refreshing the page if permission was denied")
-        st.write("4. Check your browser's location settings")
     
     # Get weather when button is clicked
     if get_weather_btn:
         # Clear cache to ensure fresh API calls
         get_local_events.clear()
         
-        # Use the same simple check as your working example
-        if location:            
-            if location['latitude'] and location['longitude']:
-                lat = location['latitude']
-                lon = location['longitude']
-                
-                # Use reverse geocoding to get city and country
-                reverse_geocoded = reverse_geocode(lat, lon)
-                if reverse_geocoded:
-                    city_name, country = reverse_geocoded
-                else:
-                    city_name = "Current Location"
-                    country = ""
-                
+        # Check if user provided a location search text
+        if location_search_txt and location_search_txt.strip():
+            # Use the location search text
+            lat, lon, city_name, country = geocode_location(location_search_txt.strip())
+            
+            if lat is not None and lon is not None:
                 # Store location data with city name
                 st.session_state.location_data = {
                     'latitude': lat,
@@ -243,11 +260,36 @@ def main():
                     'city': city_name,
                     'country': country
                 }
-                st.success(f"✅ Location detected: {city_name}{', ' + country if country else ''}")
+                st.success(f"✅ Location found: {city_name}{', ' + country if country else ''}")
             else:
-                st.error("❌ Location coordinates are null. Please try again.")
+                st.error(f"❌ Could not find location '{location_search_txt}'. Please try a different search term.")
         else:
-            st.error("❌ Could not access your location. Please ensure location permissions are enabled.")
+            # Fall back to geolocation if no search text provided
+            if location:            
+                if location['latitude'] and location['longitude']:
+                    lat = location['latitude']
+                    lon = location['longitude']
+                    
+                    # Use reverse geocoding to get city and country
+                    reverse_geocoded = reverse_geocode(lat, lon)
+                    if reverse_geocoded:
+                        city_name, country = reverse_geocoded
+                    else:
+                        city_name = "Current Location"
+                        country = ""
+                    
+                    # Store location data with city name
+                    st.session_state.location_data = {
+                        'latitude': lat,
+                        'longitude': lon,
+                        'city': city_name,
+                        'country': country
+                    }
+                    st.success(f"✅ Location detected: {city_name}{', ' + country if country else ''}")
+                else:
+                    st.error("❌ Location coordinates are null. Please try again.")
+            else:
+                st.error("❌ Could not access your location. Please ensure location permissions are enabled.")
 
     # Display weather data if location exists (even when temperature unit changes)
     if st.session_state.location_data and st.session_state.location_data.get('latitude') and st.session_state.location_data.get('latitude') is not None:
