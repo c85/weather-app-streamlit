@@ -6,7 +6,7 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 ### 🌡️ Weather Information
 - **Real-time weather data** from Open-Meteo API
-- **Automatic location detection** using IP geolocation
+- **Automatic location detection** using Streamlit's geolocation module
 - **Interactive map** showing your current location
 - **Comprehensive weather details** including:
   - Temperature (Celsius/Fahrenheit)
@@ -137,8 +137,6 @@ A modern, interactive weather application built with Streamlit that provides rea
 ### External APIs Used
 
 - **Open-Meteo**: Weather data and geocoding
-- **IPify**: IP address detection
-- **IPAPI**: IP-based geolocation
 - **SerpAPI**: Local event discovery
 - **OpenAI**: AI recommendations
 
@@ -152,7 +150,7 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 ### Key Components
 
-- **Location Detection**: IP-based geolocation with fallback
+- **Location Detection**: Streamlit's geolocation module with user provided fallback
 - **Weather Data**: Real-time weather from Open-Meteo
 - **Event Discovery**: Local events via SerpAPI
 - **AI Integration**: Weather-appropriate recommendations
@@ -198,7 +196,7 @@ Add secrets through the web interface in your app settings.
 
 1. **Location not detected**
    - Check internet connection
-   - Verify IP geolocation services are accessible
+   - Verify geolocation services are accessible
 
 2. **API errors**
    - Verify API keys are correctly set
