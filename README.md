@@ -10,7 +10,6 @@ A modern, interactive weather application built with Streamlit that provides rea
 - **Interactive map** showing your current location
 - **Comprehensive weather details** including:
   - Temperature (Celsius/Fahrenheit)
-  - Wind speed
   - Weather conditions with detailed descriptions
   - Current date and local time
 - **5-Day Weather Forecast** powered by machine learning:
@@ -196,7 +195,6 @@ Add secrets through the web interface in your app settings.
 
 ### Customization Options
 - Temperature units (Celsius/Fahrenheit)
-- Wind speed units (km/h, mph, m/s, knots)
 - Caching duration (configurable TTL)
 - Weather code descriptions (WMO codes)
 

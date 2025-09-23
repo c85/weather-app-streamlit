@@ -129,7 +129,6 @@ def get_ai_events(weather_data, event_data):
     - If it's raining: suggest umbrellas, waterproof jackets, rain boots
     - If it's sunny and warm: suggest light clothing, sun hats, sunscreen
     - If it's cold: suggest warm jackets, layers, gloves, hats
-    - If it's windy: suggest wind-resistant clothing, secure accessories
     - If it's snowing: suggest winter gear, boots, warm layers
 
     Provide 3-5 specific event recommendations with weather-appropriate clothing suggestions for each."""
@@ -148,8 +147,6 @@ def get_ai_events(weather_data, event_data):
 
     Current Weather:
     - Temperature: {weather_data.get('temperature', 'N/A')}°F
-    - Wind Speed: {weather_data.get('windspeed', 'N/A')} mph
-    - Wind Direction: {weather_data.get('winddirection', 'N/A')}°
     - Weather Code: {weather_data.get('weathercode', 'N/A')}
     - Time: {weather_data.get('time', 'N/A')}
 
@@ -350,11 +347,10 @@ def main():
                             st.write(f"**{current_date}**")
                             # Show current local time below the date
                             current_time = datetime.now().strftime("%I:%M %p")
-                            st.write(f"**{current_time}**")
+                            st.write(f"**Current Time: {current_time}**")
                         
                         with col2:
                             st.write(f"🌡️ {weather['temperature']} {unit}")
-                            st.write(f"💨 {weather['windspeed']} {('km/h' if unit=='°C' else 'mph')}")
                             # Weather condition with icon
                             if "rain" in desc.lower() or "thunder" in desc.lower():
                                 st.write(f"🌧️ {desc}")
