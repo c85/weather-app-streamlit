@@ -210,7 +210,7 @@ def main():
     with col2:
         st.html("<b><i>**Click the icon to the left and allow location permissions**</b></i>")
 
-    location_search_txt = st.text_input("Location Search", key="city_text_search", value="")
+    location_search_txt = st.text_input("Location Search", key="city_text_search")
 
     # Sidebar for view selection
     with st.sidebar:
@@ -236,8 +236,6 @@ def main():
         # Always show clear button
         if st.button("🗑️ Clear Location", help="Clear detected location"):
             st.session_state.location_data = None
-            # Clear the text input field by setting it to empty string
-            st.session_state.city_text_search = ""
             st.rerun()
 
     # Temperature unit settings
