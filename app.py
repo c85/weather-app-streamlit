@@ -1,8 +1,9 @@
 import streamlit as st
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from openai import OpenAI
 from streamlit_geolocation import streamlit_geolocation
+import historical
 
 @st.cache_data(ttl=600)
 def reverse_geocode(lat: float, lon: float):
@@ -327,14 +328,117 @@ def main():
                             datetime.fromisoformat(ts).strftime("%b %d, %Y %I:%M %p")
                             if ts else "—"
                         )
-                        st.write("**Weather Details**")
-                        st.caption(f"{when} (local time)")
-                        cols = st.columns(3)
-                        cols[0].metric("Temperature", f"{weather['temperature']} {unit}")
-                        cols[1].metric("Wind Speed", f"{weather['windspeed']} {('km/h' if unit=='°C' else 'mph')}")
-                        cols[2].metric("Direction", f"{weather['winddirection']}°")
+                        st.subheader("**Weather Details**")
+                        
+                        # Display current weather with similar styling to forecast
+                        col1, col2, col3 = st.columns([2, 2, 1])
+                        
+                        with col1:
+                            # Show current date in format "Monday, September 22"
+                            current_date = datetime.now().strftime("%A, %B %d")
+                            st.write(f"**{current_date}**")
+                            # Show current local time below the date
+                            current_time = datetime.now().strftime("%I:%M %p")
+                            st.write(f"**{current_time}**")
+                        
+                        with col2:
+                            st.write(f"🌡️ {weather['temperature']} {unit}")
+                            st.write(f"💨 {weather['windspeed']} {('km/h' if unit=='°C' else 'mph')}")
+                            # Weather condition with icon
+                            if "rain" in desc.lower() or "thunder" in desc.lower():
+                                st.write(f"🌧️ {desc}")
+                            elif "cloud" in desc.lower() or "overcast" in desc.lower():
+                                st.write(f"☁️ {desc}")
+                            elif "snow" in desc.lower():
+                                st.write(f"❄️ {desc}")
+                            elif "fog" in desc.lower():
+                                st.write(f"🌫️ {desc}")
+                            else:
+                                st.write(f"☀️ {desc}")
+                        
+                        with col3:
+                            st.write("")  # Empty column for spacing
 
-                        st.write(f"**Condition:** {desc}")
+                        # Add 5-day forecast below the condition using historical.py functions
+                        try:
+                            with st.spinner("Generating 5-day forecast..."):
+                                # Fetch historical data for the last year
+                                end_date = datetime.now() - timedelta(days=1)
+                                start_date = end_date - timedelta(days=365)
+                                
+                                historical_df = historical.fetch_historical_weather(
+                                    lat, lon, 
+                                    start_date.strftime('%Y-%m-%d'), 
+                                    end_date.strftime('%Y-%m-%d')
+                                )
+                                
+                                if not historical_df.empty and len(historical_df) > 100:
+                                    # Prepare data for ML using historical.py function
+                                    X, y, scaler_y = historical.prepare_weather_data(historical_df)
+                                    
+                                    if len(X) > 100:
+                                        # Split data for training
+                                        split_idx = int(len(X) * 0.8)
+                                        X_train, X_val = X[:split_idx], X[split_idx:]
+                                        y_train, y_val = y[:split_idx], y[split_idx:]
+                                        
+                                        # Train models using historical.py function
+                                        models = historical.train_simple_models(X_train, y_train, X_val, y_val)
+                                        
+                                        if models:
+                                            # Make predictions using historical.py function
+                                            predictions = historical.predict_weather_simple(models, X, scaler_y, 5)
+                                            
+                                            if predictions:
+                                                # Get forecast data using historical.py function
+                                                forecast_data = historical.get_5day_forecast_data(
+                                                    historical_df, 
+                                                    predictions, 
+                                                    5, 
+                                                    temp_unit
+                                                )
+                                                
+                                                if forecast_data:
+                                                    # Display forecast with styling in app.py
+                                                    unit_symbol = "°F" if temp_unit == "fahrenheit" else "°C"
+                                                    st.subheader(f"5-Day Forecast ({unit_symbol})")
+                                                    
+                                                    for day_data in forecast_data:
+                                                        desc = WMO_CODES.get(day_data['weather_code'], f"Code {day_data['weather_code']}")
+                                                        
+                                                        # Display each day
+                                                        col1, col2, col3 = st.columns([2, 2, 1])
+                                                        
+                                                        with col1:
+                                                            st.write(f"**{day_data['date'].strftime('%A, %B %d')}**")
+                                                        
+                                                        with col2:
+                                                            st.write(f"🌡️ {day_data['temperature']:.1f}{unit_symbol}")
+                                                            # Weather condition with icon
+                                                            if "rain" in desc.lower() or "thunder" in desc.lower():
+                                                                st.write(f"🌧️ {desc}")
+                                                            elif "cloud" in desc.lower() or "overcast" in desc.lower():
+                                                                st.write(f"☁️ {desc}")
+                                                            elif "snow" in desc.lower():
+                                                                st.write(f"❄️ {desc}")
+                                                            else:
+                                                                st.write(f"☀️ {desc}")
+                                                        
+                                                        with col3:
+                                                            st.write("")  # Empty column for spacing
+                                                        
+                                                else:
+                                                    st.warning("Could not generate forecast data.")
+                                            else:
+                                                st.warning("Could not generate weather forecast predictions.")
+                                        else:
+                                            st.warning("Could not train weather prediction model.")
+                                    else:
+                                        st.warning("Not enough historical data for accurate forecasting.")
+                                else:
+                                    st.warning("Insufficient historical data available for forecasting.")
+                        except Exception as e:
+                            st.warning(f"Forecast generation failed: {e}")
                 
                 elif view_mode == "Local Events":
                     st.subheader("Local Events (Powered by ChatGPT)")

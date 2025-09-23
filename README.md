@@ -10,9 +10,14 @@ A modern, interactive weather application built with Streamlit that provides rea
 - **Interactive map** showing your current location
 - **Comprehensive weather details** including:
   - Temperature (Celsius/Fahrenheit)
-  - Wind speed and direction
+  - Wind speed
   - Weather conditions with detailed descriptions
-  - Timestamp of weather data
+  - Current date and local time
+- **5-Day Weather Forecast** powered by machine learning:
+  - Regression analysis using historical weather data
+  - Temperature predictions for the next 5 days
+  - Weather condition forecasts with WMO codes
+  - Seasonal pattern analysis for accurate predictions
 
 ### 🤖 AI-Powered Event Recommendations
 - **Local event discovery** using SerpAPI
@@ -22,6 +27,8 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 ### 🎨 User Experience
 - **Clean, modern interface** with Streamlit
+- **Consistent styling** across current weather and forecast sections
+- **Intuitive layout** with weather icons and clear information hierarchy
 - **Responsive design** with sidebar navigation
 - **Real-time updates** with caching for optimal performance
 - **Error handling** with user-friendly messages
@@ -136,7 +143,7 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 ### External APIs Used
 
-- **Open-Meteo**: Weather data and geocoding
+- **Open-Meteo**: Weather data, geocoding, and historical weather data
 - **SerpAPI**: Local event discovery
 - **OpenAI**: AI recommendations
 
@@ -152,6 +159,8 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 - **Location Detection**: Streamlit's geolocation module with user provided fallback
 - **Weather Data**: Real-time weather from Open-Meteo
+- **Historical Data**: Past weather data for machine learning predictions
+- **Machine Learning**: Linear regression models for weather forecasting
 - **Event Discovery**: Local events via SerpAPI
 - **AI Integration**: Weather-appropriate recommendations
 - **Caching**: 5-10 minute TTL for optimal performance
@@ -164,11 +173,12 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 ## 📱 Usage
 
-1. **Launch the app** and click "🌐 Use My Location"
+1. **Launch the app** and click "🌐 Get Weather"
 2. **Choose temperature unit** (°F or °C)
-3. **View weather information** with interactive map
-4. **Switch to "Local Events"** for AI recommendations
-5. **Get personalized suggestions** based on weather conditions
+3. **View current weather** with date, time, and weather details
+4. **See 5-day forecast** with machine learning predictions
+5. **Switch to "Local Events"** for AI recommendations
+6. **Get personalized suggestions** based on weather conditions
 
 ## 🔧 Configuration
 
