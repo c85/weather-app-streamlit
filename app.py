@@ -3,6 +3,14 @@ import requests
 from datetime import datetime, timedelta
 from openai import OpenAI
 from streamlit_geolocation import streamlit_geolocation
+import sys
+import os
+
+# Add current directory to Python path to ensure historical module can be imported
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 import historical
 
 @st.cache_data(ttl=600)
