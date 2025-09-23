@@ -231,6 +231,9 @@ def main():
         # Always show clear button
         if st.button("🗑️ Clear Location", help="Clear detected location"):
             st.session_state.location_data = None
+            # Clear the text input field
+            if 'city_text_search' in st.session_state:
+                st.session_state.city_text_search = ""
             st.rerun()
 
     # Temperature unit settings
