@@ -54,7 +54,7 @@ A modern, interactive weather application built with Streamlit that provides rea
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/c85/weather-app-streamlit/
    cd weather-app-streamlit
    ```
 
