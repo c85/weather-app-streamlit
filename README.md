@@ -261,49 +261,6 @@ Add secrets through the web interface in your app settings.
 - Caching duration (configurable TTL)
 - Weather code descriptions (WMO codes)
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **Location not detected**
-   - **Automatic detection**: Check internet connection and browser location permissions
-   - **Manual search**: Try different location formats (city, state, country)
-   - **Fallback**: Use the text search if geolocation fails
-
-2. **API errors**
-   - **Weather data**: Verify internet connection and API availability
-   - **API keys**: Ensure OpenAI and SerpAPI keys are correctly set in secrets
-   - **Quota limits**: Check API usage and billing status
-   - **Rate limiting**: Wait a few minutes before retrying
-
-3. **Forecast generation issues**
-   - **Insufficient data**: Ensure location has enough historical weather data
-   - **Streamlit caching**: Clear browser cache if forecasts seem outdated
-   - **Model training**: Wait for ML model to complete training (may take 30-60 seconds)
-
-4. **No events found**
-   - **SerpAPI key**: Verify SerpAPI key is valid and active
-   - **Location**: Check if the location has available events
-   - **API limits**: Ensure SerpAPI quota hasn't been exceeded
-
-5. **Performance issues**
-   - **Slow loading**: Historical data fetching can take time (up to 1 year of data)
-   - **Memory usage**: Large datasets may require more memory
-   - **Caching**: First load is slower; subsequent loads use cached data
-
-### Recent Fixes
-
-- **Streamlit caching error**: Fixed "Cannot hash argument 'self'" error in WeatherHistoricalAnalyzer
-- **Location search**: Added manual location search as fallback for geolocation
-- **Error handling**: Improved error messages and graceful degradation
-- **Session management**: Enhanced state persistence across user interactions
-
-### Error Messages
-- **User-friendly messages**: Clear, actionable error descriptions
-- **Debug information**: Detailed logging for troubleshooting
-- **Graceful fallbacks**: App continues to function even with API failures
-- **Status indicators**: Visual feedback for loading states and errors
-
 ## 📄 License
 
 This project is open source and available under the [MIT License](LICENSE).
