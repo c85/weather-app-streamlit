@@ -100,42 +100,6 @@ A modern, interactive weather application built with Streamlit that provides rea
 3. **Access the app**
    Open `http://localhost:8501` in your browser
 
-## ☁️ Streamlit Community Cloud Deployment
-
-### Deploy to Streamlit Community Cloud
-
-1. **Push your code to GitHub**
-   ```bash
-   git add .
-   git commit -m "Update for Streamlit Community Cloud deployment"
-   git push origin main
-   ```
-
-2. **Deploy on Streamlit Community Cloud**
-   - Go to [share.streamlit.io](https://share.streamlit.io)
-   - Sign in with your GitHub account
-   - Click "New app" and select your repository
-   - Choose the main branch and `app.py` as the main file
-
-3. **Configure secrets in Streamlit Community Cloud**
-   - In your app's settings, go to "Secrets"
-   - Add the following secrets:
-     ```toml
-     SERPAPI_API_KEY = "your_serpapi_key_here"
-     OPENAI_API_KEY = "your_openai_key_here"
-     ```
-   - Save the secrets
-
-4. **Deploy and enjoy!**
-   - Your app will be available at `https://your-app-name.streamlit.app`
-   - Secrets are automatically loaded from the Streamlit secrets management system
-
-### Important Notes for Streamlit Community Cloud
-- ✅ **No `.env` file needed** - use Streamlit's built-in secrets management
-- ✅ **Secrets are encrypted** and stored securely by Streamlit
-- ✅ **Easy to update** secrets through the web interface
-- ✅ **No environment variables** required in your code
-
 ## 📋 API Requirements
 
 ### Required API Keys
