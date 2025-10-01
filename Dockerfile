@@ -23,7 +23,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
-COPY app.py .
+COPY app.py historical.py ./
 
 # Expose the port Streamlit runs on
 EXPOSE 8501
