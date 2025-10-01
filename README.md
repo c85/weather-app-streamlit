@@ -18,7 +18,7 @@ A modern, interactive weather application built with Streamlit that provides rea
 - **Advanced 5-Day Weather Forecast** powered by machine learning:
   - **WeatherHistoricalAnalyzer class** for sophisticated data processing
   - Historical weather data analysis (up to 1 year of data)
-  - Linear regression models with feature engineering
+  - Random Forest models with feature engineering
   - Lagged features and rolling averages for improved accuracy
   - Temperature predictions for the next 5 days
   - Weather condition forecasts with meteorological logic
@@ -186,7 +186,7 @@ weather-app-streamlit/
   - Rolling averages (6h, 12h, 24h windows)
   - Meteorological parameters (temperature, humidity, pressure, etc.)
 - **Data Preprocessing**: MinMaxScaler for feature normalization
-- **Model Training**: Linear regression with scikit-learn
+- **Model Training**: Random Forest with scikit-learn
 - **Prediction Pipeline**: Multi-step forecasting with feature updates
 - **Weather Logic**: Meteorological rules for weather condition determination
 

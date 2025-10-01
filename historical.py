@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 import random
 
 
@@ -119,16 +119,23 @@ class WeatherHistoricalAnalyzer:
         return X_scaled, y_scaled, self.scaler_y
 
     def train_simple_models(self, X_train, y_train, X_val=None, y_val=None):
-        """Train Linear Regression model"""
+        """Train Random Forest model"""
         self.models = {}
         
-        # Linear Regression only
+        # Random Forest Regressor
         try:
-            lr_model = LinearRegression()
-            lr_model.fit(X_train, y_train)
-            self.models['Linear Regression'] = lr_model
+            rf_model = RandomForestRegressor(
+                n_estimators=100,
+                max_depth=10,
+                min_samples_split=5,
+                min_samples_leaf=2,
+                random_state=42,
+                n_jobs=-1
+            )
+            rf_model.fit(X_train, y_train)
+            self.models['Random Forest'] = rf_model
         except Exception as e:
-            st.error(f"Linear Regression failed: {e}")
+            st.error(f"Random Forest failed: {e}")
         
         return self.models
 
