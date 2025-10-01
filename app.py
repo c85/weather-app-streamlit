@@ -11,7 +11,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-import historical
+from historical import WeatherHistoricalAnalyzer
 
 @st.cache_data(ttl=600)
 def reverse_geocode(lat: float, lon: float):
@@ -223,9 +223,12 @@ def main():
         )
         st.divider()
 
-    # Initialize session state for location data
+    # Initialize session state for location data and analyzer
     if 'location_data' not in st.session_state:
         st.session_state.location_data = None
+    
+    if 'weather_analyzer' not in st.session_state:
+        st.session_state.weather_analyzer = WeatherHistoricalAnalyzer()
 
     # Location detection section
     col1, col2 = st.columns([1, 1])
@@ -236,6 +239,7 @@ def main():
         # Always show clear button
         if st.button("🗑️ Clear Location", help="Clear detected location"):
             st.session_state.location_data = None
+            st.session_state.weather_analyzer.clear_data()
             st.rerun()
 
     # Temperature unit settings
@@ -363,22 +367,25 @@ def main():
                         with col3:
                             st.write("")  # Empty column for spacing
 
-                        # Add 5-day forecast below the condition using historical.py functions
+                        # Add 5-day forecast below the condition using WeatherHistoricalAnalyzer class
                         try:
                             with st.spinner("Generating 5-day forecast..."):
+                                # Get the analyzer instance from session state
+                                analyzer = st.session_state.weather_analyzer
+                                
                                 # Fetch historical data for the last year
                                 end_date = datetime.now() - timedelta(days=1)
                                 start_date = end_date - timedelta(days=365)
                                 
-                                historical_df = historical.fetch_historical_weather(
+                                historical_df = analyzer.fetch_historical_weather(
                                     lat, lon, 
                                     start_date.strftime('%Y-%m-%d'), 
                                     end_date.strftime('%Y-%m-%d')
                                 )
                                 
                                 if not historical_df.empty and len(historical_df) > 100:
-                                    # Prepare data for ML using historical.py function
-                                    X, y, scaler_y = historical.prepare_weather_data(historical_df)
+                                    # Prepare data for ML using analyzer method
+                                    X, y, scaler_y = analyzer.prepare_weather_data(historical_df)
                                     
                                     if len(X) > 100:
                                         # Split data for training
@@ -386,16 +393,16 @@ def main():
                                         X_train, X_val = X[:split_idx], X[split_idx:]
                                         y_train, y_val = y[:split_idx], y[split_idx:]
                                         
-                                        # Train models using historical.py function
-                                        models = historical.train_simple_models(X_train, y_train, X_val, y_val)
+                                        # Train models using analyzer method
+                                        models = analyzer.train_simple_models(X_train, y_train, X_val, y_val)
                                         
                                         if models:
-                                            # Make predictions using historical.py function
-                                            predictions = historical.predict_weather_simple(models, X, scaler_y, 5)
+                                            # Make predictions using analyzer method
+                                            predictions = analyzer.predict_weather_simple(X, 5)
                                             
                                             if predictions:
-                                                # Get forecast data using historical.py function
-                                                forecast_data = historical.get_5day_forecast_data(
+                                                # Get forecast data using analyzer method
+                                                forecast_data = analyzer.get_5day_forecast_data(
                                                     historical_df, 
                                                     predictions, 
                                                     5, 
