@@ -5,6 +5,7 @@ from openai import OpenAI
 from streamlit_geolocation import streamlit_geolocation
 import sys
 import os
+import pytz
 
 # Add current directory to Python path to ensure historical module can be imported
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,6 +13,21 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from historical import WeatherHistoricalAnalyzer
+
+def get_user_local_time(weather_response):
+    """Get user's local time based on timezone from weather API response."""
+    try:
+        # Get timezone from weather response
+        timezone_str = weather_response.get("timezone", "UTC")
+        
+        # Get current time in the user's timezone
+        user_tz = pytz.timezone(timezone_str)
+        user_time = datetime.now(user_tz)
+        
+        return user_time
+    except Exception as e:
+        # Fallback to UTC if timezone conversion fails
+        return datetime.now(pytz.UTC)
 
 @st.cache_data(ttl=600)
 def reverse_geocode(lat: float, lon: float):
@@ -86,7 +102,7 @@ def get_current_weather(lat: float, lon: float, temp_unit: str, wind_unit: str):
     }
     r = requests.get(url, params=params, timeout=10) # send request
     r.raise_for_status()
-    return r.json().get("current_weather")
+    return r.json()  # Return full response to access timezone info
 
 @st.cache_data(ttl=300)
 def get_local_events(city_name):
@@ -313,7 +329,8 @@ def main():
             country = st.session_state.location_data.get('country', '')
             
             # Get weather data
-            weather = get_current_weather(lat, lon, temp_unit, wind_unit)
+            weather_response = get_current_weather(lat, lon, temp_unit, wind_unit)
+            weather = weather_response.get("current_weather")
 
             if not weather:
                 st.error("Could not fetch current weather. Please try again.")
@@ -339,15 +356,18 @@ def main():
                         )
                         st.subheader("**Weather Details**")
                         
+                        # Get user's local time based on their location
+                        user_time = get_user_local_time(weather_response)
+                        
                         # Display current weather with similar styling to forecast
                         col1, col2, col3 = st.columns([2, 2, 1])
                         
                         with col1:
-                            # Show current date in format "Monday, September 22"
-                            current_date = datetime.now().strftime("%A, %B %d")
+                            # Show current date in user's local timezone
+                            current_date = user_time.strftime("%A, %B %d")
                             st.write(f"**{current_date}**")
                             # Show current local time below the date
-                            current_time = datetime.now().strftime("%I:%M %p")
+                            current_time = user_time.strftime("%I:%M %p")
                             st.write(f"**Current Time: {current_time}**")
                         
                         with col2:
